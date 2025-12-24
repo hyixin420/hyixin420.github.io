@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D手势圣诞树 | 照片墙版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000000; 
+            color: #FFD700; 
+            font-family: 'Arial', sans-serif; 
+            overflow: hidden; 
+            height: 100vh; 
+        }
+        
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #FFD700, #FFF8DC);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 5px;
+        }
+        
+        #sceneContainer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        /* 左侧控制面板 */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #FFD700;
+            z-index: 100;
+            width: 280px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(255,215,0,0.2);
+        }
+        
+        .panel-title {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .panel-title::before {
+            content: "🎄";
+        }
+        
+        .upload-section {
+            margin-bottom: 20px;
+        }
+        
+        .upload-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,215,0,0.4);
+        }
+        
+        .photo-count {
+            color: #FFF8DC;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .photo-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+        
+        .photo-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            margin-bottom: 5px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .photo-item:hover {
+            background: rgba(255,215,0,0.2);
+        }
+        
+        .photo-item::before {
+            content: "🖼️";
+            margin-right: 8px;
+        }
+        
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .control-btn {
+            padding: 10px;
+            background: rgba(255,215,0,0.15);
+            color: #FFD700;
+            border: 1px solid #FFD700;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255,215,0,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.delete {
+            background: rgba(255,50,50,0.15);
+            border-color: #FF3333;
+            color: #FF6666;
+        }
+        
+        .control-btn.delete:hover {
+            background: rgba(255,50,50,0.3);
+        }
+        
+        /* 右侧状态面板 */
+        .status-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #FFD700;
+            z-index: 100;
+            width: 280px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(255,215,0,0.2);
+        }
+        
+        .status-item {
+            margin-bottom: 15px;
+        }
+        
+        .status-label {
+            color: #FFF8DC;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-label::before {
+            font-size: 1rem;
+        }
+        
+        .status-value {
+            color: #FFD700;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 8px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 6px;
+            display: block;
+            text-align: center;
+        }
+        
+        #gestureStatus {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        /* 摄像头面板 */
+        .camera-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #FFD700;
+            z-index: 100;
+            text-align: center;
+            width: 220px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #webcam {
+            width: 180px;
+            height: 135px;
+            border-radius: 8px;
+            border: 2px solid #FFD700;
+            transform: scaleX(-1);
+            background: #000;
+        }
+        
+        /* 照片墙模式提示 */
+        .photo-wall-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid #FFD700;
+            z-index: 100;
+            font-size: 0.9rem;
+            color: #FFF8DC;
+            display: none;
+        }
+        
+        /* 加载指示器 */
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #FFD700;
+            z-index: 200;
+            text-align: center;
+            color: #FFD700;
+            font-size: 1.2rem;
+        }
+        
+        .loader.hidden {
+            display: none;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 1200px) {
+            .control-panel, .status-panel {
+                width: 240px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .control-panel, .status-panel {
+                position: relative;
+                width: 90%;
+                margin: 10px auto;
+                left: 0;
+                right: 0;
+                transform: none;
+            }
+            
+            .camera-panel {
+                width: 200px;
+            }
+            
+            #webcam {
+                width: 160px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 标题 -->
+    <div class="header">
+        <h1>🎄 3D照片圣诞树 🎄</h1>
+        <div style="font-size: 0.9rem;">上传照片 | 手势控制 | 3D照片墙</div>
+    </div>
+    
+    <!-- 左侧控制面板 -->
+    <div class="control-panel">
+        <div class="panel-title">照片控制面板</div>
+        
+        <div class="upload-section">
+            <label for="photoUpload" class="upload-btn">
+                📷 上传照片 (可多选)
+            </label>
+            <input type="file" id="photoUpload" accept="image/*" multiple style="display: none;">
+            
+            <div class="photo-count">
+                已加载: <span id="photoCount">0</span> 张照片
+            </div>
+            
+            <div class="photo-list" id="photoList">
+                <!-- 照片列表会动态添加到这里 -->
+            </div>
+        </div>
+        
+        <div class="control-buttons">
+            <button class="control-btn" onclick="tree.togglePhotoWall()">
+                🖼️ 切换照片墙
+            </button>
+            <button class="control-btn" onclick="tree.rotatePhotos()">
+                🔄 旋转照片
+            </button>
+            <button class="control-btn" onclick="tree.scatterParticles()">
+                ✨ 粒子散开
+            </button>
+            <button class="control-btn delete" onclick="tree.clearAllPhotos()">
+                🗑️ 清空照片
+            </button>
+        </div>
+    </div>
+    
+    <!-- 右侧状态面板 -->
+    <div class="status-panel">
+        <div class="panel-title">系统状态</div>
+        
+        <div class="status-item">
+            <div class="status-label">🌲 圣诞树模式</div>
+            <div class="status-value" id="treeMode">树形</div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-label">🎯 照片墙状态</div>
+            <div class="status-value" id="photoWallStatus">关闭</div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-label">✋ 手势状态</div>
+            <div class="status-value" id="gestureStatus">
+                等待摄像头启动
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-label">⚙️ 操作提示</div>
+            <div class="status-value" style="font-size:0.85rem;">
+                握拳聚合 | 张开散开
+            </div>
+        </div>
+    </div>
+    
+    <!-- 摄像头面板 -->
+    <div class="camera-panel">
+        <div style="margin-bottom: 10px; color: #FFD700;">🎥 手势摄像头</div>
+        <video id="webcam" autoplay playsinline></video>
+        <button onclick="startCamera()" class="control-btn" style="margin-top:10px; width:100%;">
+            启动摄像头
+        </button>
+    </div>
+    
+    <!-- 照片墙模式提示 -->
+    <div class="photo-wall-hint" id="photoWallHint">
+        🖼️ 照片墙模式已激活！照片正在围绕圣诞树旋转
+    </div>
+    
+    <!-- 加载指示器 -->
+    <div class="loader" id="loader">
+        <div>🔄 加载圣诞树中...</div>
+        <div style="font-size:0.9rem; margin-top:10px;" id="loadProgress"></div>
+    </div>
+    
+    <!-- 3D场景容器 -->
+    <div id="sceneContainer"></div>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // 带照片墙的圣诞树
+        class PhotoChristmasTree {
+            constructor() {
+                // Three.js核心
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                
+                // 粒子系统
+                this.particles = [];
+                this.particleGroup = new THREE.Group();
+                this.targetPositions = [];
+                
+                // 照片系统
+                this.photos = []; // 存储照片数据
+                this.photoCards = []; // 存储3D照片卡片
+                this.isPhotoWallActive = false;
+                this.photoWallRadius = 15;
+                
+                // 控制状态
+                this.mode = 'tree';
+                this.isRotating = true;
+                this.colorTheme = 0;
+                
+                // 手势控制
+                this.video = null;
+                this.canvas = null;
+                this.ctx = null;
+                this.handTrackingActive = false;
+                this.lastHandX = 0.5;
+                this.lastHandY = 0.5;
+                this.gestureCooldown = 0;
+                
+                // 参数
+                this.params = {
+                    particleCount: 1000,
+                    treeHeight: 12,
+                    treeRadius: 4,
+                    handDetectionThreshold: 40
+                };
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log("🎄 初始化带照片墙的圣诞树...");
+                
+                // 显示加载进度
+                this.updateLoadProgress("创建3D场景...");
+                
+                // 1. 创建场景
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x000000);
+                this.scene.fog = new THREE.Fog(0x000000, 10, 50);
+                
+                // 2. 创建相机
+                this.camera = new THREE.PerspectiveCamera(
+                    60, 
+                    window.innerWidth / window.innerHeight,
+                    0.1, 
+                    1000
+                );
+                this.camera.position.set(0, 8, 25);
+                
+                this.updateLoadProgress("创建渲染器...");
+                
+                // 3. 创建渲染器
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    alpha: false
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.getElementById('sceneContainer').appendChild(this.renderer.domElement);
+                
+                // 4. 设置灯光
+                this.setupLights();
+                
+                this.updateLoadProgress("创建粒子系统...");
+                
+                // 5. 创建圣诞树粒子
+                this.createParticles();
+                
+                // 6. 设置UI事件
+                this.setupUI();
+                
+                // 7. 设置鼠标控制
+                this.setupMouseControls();
+                
+                // 8. 开始动画循环
+                this.animate();
+                
+                // 9. 隐藏加载器
+                setTimeout(() => {
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('status').textContent = '就绪';
+                }, 1000);
+                
+                console.log("✅ 初始化完成！");
+            }
+            
+            updateLoadProgress(message) {
+                const progress = document.getElementById('loadProgress');
+                if (progress) {
+                    progress.textContent = message;
+                }
+            }
+            
+            setupLights() {
+                // 环境光
+                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
+                this.scene.add(ambientLight);
+                
+                // 主聚光灯（金色）
+                const mainLight = new THREE.SpotLight(0xFFD700, 1.2);
+                mainLight.position.set(10, 20, 10);
+                mainLight.angle = Math.PI / 4;
+                mainLight.penumbra = 0.5;
+                mainLight.decay = 2;
+                mainLight.distance = 100;
+                mainLight.castShadow = true;
+                mainLight.shadow.mapSize.width = 1024;
+                mainLight.shadow.mapSize.height = 1024;
+                this.scene.add(mainLight);
+                
+                // 点光源（用于照片照明）
+                const photoLight = new THREE.PointLight(0xFFFFFF, 0.8, 50);
+                photoLight.position.set(0, 10, 0);
+                this.scene.add(photoLight);
+            }
+            
+            createParticles() {
+                console.log("创建圣诞树粒子...");
+                
+                // 两种几何体：立方体和球体
+                const geometries = [
+                    new THREE.BoxGeometry(0.2, 0.2, 0.2),
+                    new THREE.SphereGeometry(0.15, 6, 6)
+                ];
+                
+                // 两种材质：金色和奶油色
+                const goldMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xFFD700,
+                    metalness: 0.8,
+                    roughness: 0.2,
+                    emissive: 0xFFD700,
+                    emissiveIntensity: 0.3
+                });
+                
+                const creamMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xFFF8DC,
+                    metalness: 0.4,
+                    roughness: 0.3,
+                    emissive: 0xFFF8DC,
+                    emissiveIntensity: 0.2
+                });
+                
+                const materials = [goldMaterial, creamMaterial];
+                
+                // 创建粒子
+                for (let i = 0; i < this.params.particleCount; i++) {
+                    const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+                    const material = materials[Math.floor(Math.random() * materials.length)];
+                    const particle = new THREE.Mesh(geometry, material.clone());
+                    
+                    // 随机初始位置（球形分布）
+                    const radius = 18;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    
+                    particle.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                    particle.position.y = radius * Math.sin(phi) * Math.sin(theta);
+                    particle.position.z = radius * Math.cos(phi);
+                    
+                    // 随机旋转
+                    particle.rotation.x = Math.random() * Math.PI * 2;
+                    particle.rotation.y = Math.random() * Math.PI * 2;
+                    
+                    // 存储粒子数据
+                    particle.userData = {
+                        targetPosition: new THREE.Vector3(),
+                        originalIndex: i,
+                        speed: 0.3 + Math.random() * 0.4,
+                        scale: 0.8 + Math.random() * 0.4
+                    };
+                    
+                    particle.scale.setScalar(particle.userData.scale);
+                    particle.castShadow = true;
+                    
+                    this.particles.push(particle);
+                    this.particleGroup.add(particle);
+                }
+                
+                // 计算圣诞树形状
+                this.calculateTreePositions();
+                this.scene.add(this.particleGroup);
+                
+                // 更新UI
+                document.getElementById('treeMode').textContent = '树形';
+                document.getElementById('photoCount').textContent = '0';
+            }
+            
+            calculateTreePositions() {
+                this.targetPositions = [];
+                
+                for (let i = 0; i < this.particles.length; i++) {
+                    const layerCount = 8;
+                    const layer = Math.floor((i / this.particles.length) * layerCount);
+                    const layerHeight = this.params.treeHeight * (layer / layerCount);
+                    const layerRadius = this.params.treeRadius * (1 - (layer / layerCount));
+                    
+                    // 黄金角度螺旋排列
+                    const angle = (i * 137.5) * (Math.PI / 180);
+                    const radius = layerRadius * Math.sqrt((i % (this.particles.length / layerCount)) / (this.particles.length / layerCount));
+                    
+                    const targetPos = new THREE.Vector3(
+                        Math.cos(angle) * radius,
+                        layerHeight,
+                        Math.sin(angle) * radius
+                    );
+                    
+                    this.targetPositions.push(targetPos);
+                    this.particles[i].userData.targetPosition.copy(targetPos);
+                }
+            }
+            
+            // ==================== 照片上传功能 ====================
+            setupUI() {
+                // 照片上传处理
+                document.getElementById('photoUpload').addEventListener('change', (event) => {
+                    this.handlePhotoUpload(event.target.files);
+                    event.target.value = ''; // 重置input
+                });
+                
+                // 点击上传按钮
+                document.querySelector('.upload-btn').addEventListener('click', () => {
+                    document.getElementById('photoUpload').click();
+                });
+                
+                // 初始更新
+                this.updatePhotoList();
+            }
+            
+            async handlePhotoUpload(files) {
+                console.log(`上传 ${files.length} 张照片`);
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    try {
+                        // 读取文件为DataURL
+                        const dataUrl = await this.readFileAsDataURL(file);
+                        
+                        // 添加到照片数组
+                        this.photos.push({
+                            id: Date.now() + i,
+                            name: file.name,
+                            dataUrl: dataUrl,
+                            size: file.size,
+                            type: file.type
+                        });
+                        
+                        // 创建3D照片卡片
+                        await this.createPhotoCard(dataUrl, this.photos.length - 1);
+                        
+                    } catch (error) {
+                        console.error('照片处理失败:', error);
+                    }
+                }
+                
+                // 更新UI
+                this.updatePhotoList();
+                this.updatePhotoCount();
+                
+                // 如果照片墙未激活但有多张照片，提示用户
+                if (this.photos.length >= 2 && !this.isPhotoWallActive) {
+                    this.showPhotoWallHint();
+                }
+            }
+            
+            readFileAsDataURL(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(e);
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            async createPhotoCard(dataUrl, photoIndex) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        // 创建纹理
+                        const texture = new THREE.Texture();
+                        texture.image = img;
+                        texture.needsUpdate = true;
+                        
+                        // 计算保持比例的尺寸
+                        const maxWidth = 4;
+                        const maxHeight = 3;
+                        const ratio = img.width / img.height;
+                        
+                        let width = maxWidth;
+                        let height = maxWidth / ratio;
+                        
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                            width = maxHeight * ratio;
+                        }
+                        
+                        // 创建照片卡片几何体
+                        const geometry = new THREE.PlaneGeometry(width, height);
+                        
+                        // 创建材质
+                        const material = new THREE.MeshStandardMaterial({
+                            map: texture,
+                            side: THREE.DoubleSide,
+                            transparent: true,
+                            opacity: 0.9,
+                            roughness: 0.3,
+                            metalness: 0.1
+                        });
+                        
+                        // 创建网格
+                        const photoCard = new THREE.Mesh(geometry, material);
+                        
+                        // 设置位置（围绕圣诞树）
+                        const angle = (photoIndex / Math.max(1, this.photos.length)) * Math.PI * 2;
+                        const radius = this.photoWallRadius;
+                        const heightOffset = 6;
+                        
+                        photoCard.position.set(
+                            Math.cos(angle) * radius,
+                            heightOffset,
+                            Math.sin(angle) * radius
+                        );
+                        
+                        // 始终面向相机（广告牌效果）
+                        photoCard.lookAt(this.camera.position);
+                        
+                        // 添加边框效果
+                        const borderGeometry = new THREE.PlaneGeometry(width + 0.2, height + 0.2);
+                        const borderMaterial = new THREE.MeshBasicMaterial({
+                            color: 0xFFD700,
+                            side: THREE.DoubleSide,
+                            transparent: true,
+                            opacity: 0.5
+                        });
+                        
+                        const border = new THREE.Mesh(borderGeometry, borderMaterial);
+                        border.position.z = -0.01; // 稍微在后面
+                        photoCard.add(border);
+                        
+                        // 添加发光效果
+                        const glowGeometry = new THREE.PlaneGeometry(width + 0.4, height + 0.4);
+                        const glowMaterial = new THREE.MeshBasicMaterial({
+                            color: 0xFFD700,
+                            side: THREE.DoubleSide,
+                            transparent: true,
+                            opacity: 0.2
+                        });
+                        
+                        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                        glow.position.z = -0.02;
+                        photoCard.add(glow);
+                        
+                        // 存储引用
+                        photoCard.userData = {
+                            isPhotoCard: true,
+                            photoIndex: photoIndex,
+                            originalAngle: angle,
+                            rotationSpeed: 0.002 + Math.random() * 0.003,
+                            bobSpeed: 0.5 + Math.random() * 0.5,
+                            bobHeight: 0.1 + Math.random() * 0.2
+                        };
+                        
+                        // 添加到场景和数组
+                        this.scene.add(photoCard);
+                        this.photoCards.push(photoCard);
+                        
+                        console.log(`✅ 创建照片卡片 #${photoIndex + 1}`);
+                        resolve();
+                    };
+                    
+                    img.src = dataUrl;
+                });
+            }
+            
+            updatePhotoList() {
+                const photoList = document.getElementById('photoList');
+                photoList.innerHTML = '';
+                
+                this.photos.forEach((photo, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'photo-item';
+                    item.title = `${photo.name} (${Math.round(photo.size/1024)}KB)`;
+                    item.textContent = `${index + 1}. ${photo.name.substring(0, 20)}${photo.name.length > 20 ? '...' : ''}`;
+                    
+                    // 点击聚焦照片
+                    item.addEventListener('click', () => {
+                        this.focusOnPhoto(index);
+                    });
+                    
+                    photoList.appendChild(item);
+                });
+                
+                // 滚动到底部
+                photoList.scrollTop = photoList.scrollHeight;
+            }
+            
+            updatePhotoCount() {
+                document.getElementById('photoCount').textContent = this.photos.length;
+            }
+            
+            // ==================== 照片墙控制 ====================
+            togglePhotoWall() {
+                this.isPhotoWallActive = !this.isPhotoWallActive;
+                
+                const status = document.getElementById('photoWallStatus');
+                const hint = document.getElementById('photoWallHint');
+                
+                if (this.isPhotoWallActive) {
+                    status.textContent = '激活';
+                    status.style.color = '#4CAF50';
+                    hint.style.display = 'block';
+                    
+                    // 激活照片墙时，调整照片位置
+                    this.arrangePhotosInWall();
+                    
+                    setTimeout(() => {
+                        hint.style.display = 'none';
+                    }, 3000);
+                    
+                } else {
+                    status.textContent = '关闭';
+                    status.style.color = '#FFD700';
+                    hint.style.display = 'none';
+                    
+                    // 关闭时重置照片位置
+                    this.resetPhotoPositions();
+                }
+            }
+            
+            arrangePhotosInWall() {
+                this.photoCards.forEach((card, index) => {
+                    const angle = (index / this.photoCards.length) * Math.PI * 2;
+                    const radius = this.photoWallRadius;
+                    
+                    card.userData.targetPosition = new THREE.Vector3(
+                        Math.cos(angle) * radius,
+                        6 + Math.sin(Date.now() * 0.001 + index) * 0.5,
+                        Math.sin(angle) * radius
+                    );
+                    
+                    card.userData.targetLookAt = new THREE.Vector3(0, 6, 0);
+                });
+            }
+            
+            resetPhotoPositions() {
+                this.photoCards.forEach((card, index) => {
+                    const angle = (index / this.photoCards.length) * Math.PI * 2;
+                    const radius = 12;
+                    
+                    card.userData.targetPosition = new THREE.Vector3(
+                        Math.cos(angle) * radius,
+                        5,
+                        Math.sin(angle) * radius
+                    );
+                    
+                    card.userData.targetLookAt = this.camera.position.clone();
+                });
+            }
+            
+            rotatePhotos() {
+                // 随机旋转所有照片
+                this.photoCards.forEach(card => {
+                    card.rotation.y += (Math.random() - 0.5) * 0.5;
+                    card.rotation.x += (Math.random() - 0.5) * 0.3;
+                });
+            }
+            
+            focusOnPhoto(photoIndex) {
+                if (photoIndex >= 0 && photoIndex < this.photoCards.length) {
+                    const photoCard = this.photoCards[photoIndex];
+                    
+                    // 保存当前相机位置
+                    const originalPosition = this.camera.position.clone();
+                    const originalLookAt = new THREE.Vector3(0, 0, 0);
+                    
+                    // 计算目标位置（照片前方）
+                    const targetPosition = photoCard.position.clone();
+                    targetPosition.z += 8;
+                    targetPosition.y += 2;
+                    
+                    // 动画移动到照片
+                    const duration = 1500;
+                    const startTime = Date.now();
+                    
+                    const animateCamera = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // 缓动函数
+                        const easeProgress = this.easeOutCubic(progress);
+                        
+                        // 插值相机位置
+                        this.camera.position.lerpVectors(originalPosition, targetPosition, easeProgress);
+                        
+                        // 看向照片
+                        this.camera.lookAt(photoCard.position);
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateCamera);
+                        } else {
+                            // 3秒后返回
+                            setTimeout(() => {
+                                this.returnCameraToOriginal(originalPosition);
+                            }, 3000);
+                        }
+                    };
+                    
+                    animateCamera();
+                }
+            }
+            
+            returnCameraToOriginal(originalPosition) {
+                const currentPosition = this.camera.position.clone();
+                const duration = 1500;
+                const startTime = Date.now();
+                
+                const animateReturn = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeProgress = this.easeOutCubic(progress);
+                    
+                    this.camera.position.lerpVectors(currentPosition, originalPosition, easeProgress);
+                    this.camera.lookAt(0, 6, 0);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateReturn);
+                    }
+                };
+                
+                animateReturn();
+            }
+            
+            easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
+            }
+            
+            clearAllPhotos() {
+                if (confirm('确定要删除所有照片吗？')) {
+                    // 从场景中移除所有照片卡片
+                    this.photoCards.forEach(card => {
+                        this.scene.remove(card);
+                    });
+                    
+                    // 清空数组
+                    this.photos = [];
+                    this.photoCards = [];
+                    
+                    // 更新UI
+                    this.updatePhotoList();
+                    this.updatePhotoCount();
+                    
+                    console.log('🗑️ 已清空所有照片');
+                }
+            }
+            
+            // ==================== 粒子控制 ====================
+            scatterParticles() {
+                if (this.mode === 'scattered') return;
+                
+                this.mode = 'scattered';
+                document.getElementById('treeMode').textContent = '散开';
+                
+                for (let i = 0; i < this.particles.length; i++) {
+                    const radius = 12 + Math.random() * 8;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    
+                    this.particles[i].userData.targetPosition.set(
+                        radius * Math.sin(phi) * Math.cos(theta),
+                        radius * Math.sin(phi) * Math.sin(theta),
+                        radius * Math.cos(phi)
+                    );
+                }
+            }
+            
+            formTree() {
+                if (this.mode === 'tree') return;
+                
+                this.mode = 'tree';
+                document.getElementById('treeMode').textContent = '树形';
+                
+                for (let i = 0; i < this.particles.length; i++) {
+                    this.particles[i].userData.targetPosition.copy(this.targetPositions[i]);
+                }
+            }
+            
+            toggleRotation() {
+                this.isRotating = !this.isRotating;
+            }
+            
+            changeColor() {
+                this.colorTheme = (this.colorTheme + 1) % 3;
+                
+                const colors = [
+                    { main: 0xFFD700, name: '金色' },
+                    { main: 0xFF3333, name: '红色' },
+                    { main: 0x3366FF, name: '蓝色' }
+                ];
+                
+                const color = colors[this.colorTheme];
+                
+                this.particles.forEach(particle => {
+                    particle.material.color.setHex(color.main);
+                    particle.material.emissive.setHex(color.main);
+                });
+            }
+            
+            showPhotoWallHint() {
+                const hint = document.getElementById('photoWallHint');
+                hint.style.display = 'block';
+                hint.textContent = '🖼️ 已上传多张照片，点击"切换照片墙"查看效果！';
+                
+                setTimeout(() => {
+                    hint.style.display = 'none';
+                }, 5000);
+            }
+            
+            // ==================== 手势控制 ====================
+            async setupCamera() {
+                try {
+                    this.video = document.getElementById('webcam');
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: true 
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    await new Promise(resolve => {
+                        this.video.onloadedmetadata = () => {
+                            this.video.play();
+                            resolve();
+                        };
+                    });
+                    
+                    this.canvas = document.createElement('canvas');
+                    this.ctx = this.canvas.getContext('2d');
+                    this.canvas.width = 80;
+                    this.canvas.height = 60;
+                    
+                    document.getElementById('gestureStatus').textContent = '👋 摄像头就绪！尝试手势';
+                    this.handTrackingActive = true;
+                    
+                    this.startSimpleHandDetection();
+                    
+                } catch (error) {
+                    console.log('摄像头错误:', error);
+                    document.getElementById('gestureStatus').textContent = '❌ 摄像头失败';
+                }
+            }
+            
+            startSimpleHandDetection() {
+                if (!this.handTrackingActive || !this.video) return;
+                
+                const detectFrame = () => {
+                    if (!this.video.videoWidth) {
+                        requestAnimationFrame(detectFrame);
+                        return;
+                    }
+                    
+                    this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    let brightPixels = 0;
+                    let totalX = 0;
+                    let totalY = 0;
+                    
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        const brightness = (imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) / 3;
+                        if (brightness > 100) {
+                            brightPixels++;
+                            const pixelIndex = i / 4;
+                            totalX += pixelIndex % this.canvas.width;
+                            totalY += Math.floor(pixelIndex / this.canvas.width);
+                        }
+                    }
+                    
+                    if (brightPixels > this.params.handDetectionThreshold) {
+                        const handX = totalX / brightPixels / this.canvas.width;
+                        const handY = totalY / brightPixels / this.canvas.height;
+                        
+                        this.lastHandX = this.lastHandX * 0.7 + handX * 0.3;
+                        this.lastHandY = this.lastHandY * 0.7 + handY * 0.3;
+                        
+                        const targetRotationY = (this.lastHandX - 0.5) * Math.PI * 1.5;
+                        const targetRotationX = (this.lastHandY - 0.5) * Math.PI * 0.75;
+                        
+                        this.particleGroup.rotation.y += (targetRotationY - this.particleGroup.rotation.y) * 0.1;
+                        this.particleGroup.rotation.x += (targetRotationX - this.particleGroup.rotation.x) * 0.1;
+                        
+                        const now = Date.now();
+                        if (now - this.gestureCooldown > 1200) {
+                            const areaRatio = brightPixels / (this.canvas.width * this.canvas.height);
+                            
+                            if (areaRatio > 0.25) {
+                                document.getElementById('gestureStatus').textContent = '👋 张开手掌';
+                                if (this.mode !== 'scattered') {
+                                    this.scatterParticles();
+                                    this.gestureCooldown = now;
+                                }
+                            } else if (areaRatio > 0.05 && areaRatio < 0.15) {
+                                document.getElementById('gestureStatus').textContent = '✊ 握拳';
+                                if (this.mode !== 'tree') {
+                                    this.formTree();
+                                    this.gestureCooldown = now;
+                                }
+                            } else {
+                                document.getElementById('gestureStatus').textContent = '🖐️ 手掌移动中';
+                            }
+                        }
+                    } else {
+                        document.getElementById('gestureStatus').textContent = '👆 请将手放入画面';
+                    }
+                    
+                    if (this.handTrackingActive) {
+                        requestAnimationFrame(detectFrame);
+                    }
+                };
+                
+                detectFrame();
+            }
+            
+            startCamera() {
+                if (!this.handTrackingActive) {
+                    this.setupCamera();
+                }
+            }
+            
+            // ==================== 鼠标控制 ====================
+            setupMouseControls() {
+                const canvas = this.renderer.domElement;
+                let isDragging = false;
+                let lastX = 0, lastY = 0;
+                
+                canvas.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                    canvas.style.cursor = 'grabbing';
+                });
+                
+                canvas.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const deltaX = e.clientX - lastX;
+                    const deltaY = e.clientY - lastY;
+                    
+                    this.particleGroup.rotation.y += deltaX * 0.01;
+                    this.particleGroup.rotation.x += deltaY * 0.01;
+                    
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                });
+                
+                canvas.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    canvas.style.cursor = 'default';
+                });
+                
+                canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    this.particleGroup.scale.multiplyScalar(e.deltaY > 0 ? 0.95 : 1.05);
+                });
+                
+                canvas.addEventListener('dblclick', () => {
+                    if (this.mode === 'tree') {
+                        this.scatterParticles();
+                    } else {
+                        this.formTree();
+                    }
+                });
+                
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            // ==================== 动画循环 ====================
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const time = Date.now() * 0.001;
+                
+                // 更新粒子
+                for (let i = 0; i < this.particles.length; i++) {
+                    const particle = this.particles[i];
+                    const targetPos = particle.userData.targetPosition;
+                    
+                    particle.position.lerp(targetPos, 0.08);
+                    
+                    if (this.mode === 'tree') {
+                        const offset = particle.userData.speed;
+                        particle.position.x += Math.sin(time * offset) * 0.03;
+                        particle.position.y += Math.cos(time * offset * 0.7) * 0.03;
+                    }
+                    
+                    particle.rotation.x += 0.008;
+                    particle.rotation.y += 0.012;
+                }
+                
+                // 更新照片卡片
+                if (this.isPhotoWallActive) {
+                    this.photoCards.forEach((card, index) => {
+                        // 照片墙模式：围绕圣诞树旋转
+                        const angle = card.userData.originalAngle + time * 0.2;
+                        const radius = this.photoWallRadius;
+                        const bobHeight = Math.sin(time * card.userData.bobSpeed + index) * card.userData.bobHeight;
+                        
+                        const targetPos = new THREE.Vector3(
+                            Math.cos(angle) * radius,
+                            6 + bobHeight,
+                            Math.sin(angle) * radius
+                        );
+                        
+                        card.position.lerp(targetPos, 0.05);
+                        card.lookAt(0, 6, 0);
+                        card.rotation.y += card.userData.rotationSpeed;
+                    });
+                } else {
+                    // 普通模式：缓慢浮动
+                    this.photoCards.forEach((card, index) => {
+                        const bobHeight = Math.sin(time * 0.3 + index) * 0.2;
+                        card.position.y += bobHeight * 0.01;
+                        card.rotation.y += 0.001;
+                    });
+                }
+                
+                // 自动旋转
+                if (this.isRotating && this.mode === 'tree' && !this.handTrackingActive) {
+                    this.particleGroup.rotation.y += 0.0015;
+                }
+                
+                // 渲染
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // 全局变量和函数
+        let tree;
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            tree = new PhotoChristmasTree();
+            window.tree = tree;
+            
+            console.log("✅ 带照片墙的圣诞树已加载！");
+            console.log("📸 功能说明:");
+            console.log("1. 上传照片创建3D照片墙");
+            console.log("2. 手势控制圣诞树");
+            console.log("3. 点击照片聚焦查看");
+        });
+        
+        function startCamera() {
+            if (tree) {
+                tree.startCamera();
+            }
+        }
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'c' || e.key === 'C') startCamera();
+            if (e.key === ' ') {
+                if (tree.mode === 'tree') tree.scatterParticles();
+                else tree.formTree();
+            }
+            if (e.key === 'p' || e.key === 'P') {
+                tree.togglePhotoWall();
+            }
+        });
+    </script>
+</body>
+</html>
